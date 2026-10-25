@@ -1,0 +1,21 @@
+{
+  "description": "Kodmob Keşfet kataloğu (github.com/kodmob/kodmob-explore): topluluk araç paketleri. Bu dosya CI tarafından tools/ klasöründen üretilir; elle düzenlemeyin. Kurulum: php artisan kodmob:add <key> (sha256 denetlenir).",
+  "format": 1,
+  "tools": [
+    {
+      "key": "merhaba",
+      "label": "Merhaba (örnek araç)",
+      "description": "Araç paketi örneği: panelde bir sayfa, yetkisi ve bir uç. Kendi aracınızı yazarken başlangıç olarak bakın.",
+      "author": "Kodmob",
+      "license": "MIT",
+      "version": "0.1.0",
+      "kodmob": ">=3.0 <4",
+      "requires": [],
+      "homepage": "https://github.com/kodmob/kodmob-explore/tree/main/tools/merhaba",
+      "repository": "https://github.com/kodmob/kodmob-explore/tree/main/tools/merhaba",
+      "download": "https://raw.githubusercontent.com/kodmob/kodmob-explore/main/dist/merhaba-0.1.0.zip",
+      "sha256": "10559ddc37f9728676ad220d3892ce37f9fd6ee16932adc4fe85a8d324b31376",
+      "verified": true
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+# Keşfet kataloğu: tools/ altına araç eklenince ya da değişince paketleri denetler, dist/ zip'lerini ve catalog.json'u
+# üretip depoya yazar. Çekme isteğinde yalnızca denetler (yazmaz). Kodmob kurulumları catalog.json'u okur.
+name: Katalog
+
+on:
+  push:
+    branches: [main]
+    paths: ['tools/**', 'verified.json', 'scripts/**', '.github/workflows/catalog.yml']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Denetim (çekme isteği)
+        if: github.event_name == 'pull_request'
+        run: node scripts/build-catalog.mjs --check
+      - name: Katalog ve paketler
+        if: github.event_name != 'pull_request'
+        run: node scripts/build-catalog.mjs
+      - name: Değiştiyse yaz
+        if: github.event_name != 'pull_request'
+        run: |
+          git add catalog.json dist
+          if git diff --cached --quiet; then
+            echo "Katalog aynı."
+            exit 0
+          fi
+          git -c user.name="kodmob-katalog" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Katalog güncellendi [skip ci]"
+          git push

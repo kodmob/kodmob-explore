@@ -1,0 +1,12 @@
+{
+    "key": "merhaba",
+    "label": "Merhaba (örnek araç)",
+    "description": "Araç paketi örneği: panelde bir sayfa, yetkisi ve bir uç. Kendi aracınızı yazarken başlangıç olarak bakın.",
+    "version": "0.1.0",
+    "kodmob": ">=3.0 <4",
+    "author": "Kodmob",
+    "license": "MIT",
+    "homepage": "https://github.com/kodmob/kodmob-explore/tree/main/tools/merhaba",
+    "namespace": "KodmobTools\\Merhaba",
+    "module": "MerhabaModule"
+}
