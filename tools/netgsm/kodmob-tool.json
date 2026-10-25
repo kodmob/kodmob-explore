@@ -1,0 +1,14 @@
+{
+    "key": "netgsm",
+    "label": "NetGSM SMS",
+    "description": "NetGSM ile SMS gönderimi (REST v2): abone numarası, API şifresi, onaylı gönderici başlığı, İYS filtresi. Kodmob'un SMS aracına sağlayıcı olarak takılır; çatıdaki NetGSM'in yerine bu paketin sürümü kullanılır.",
+    "version": "1.0.0",
+    "kodmob": ">=3.1 <4",
+    "author": "Kodmob",
+    "license": "MIT",
+    "homepage": "https://github.com/kodmob/kodmob-explore/tree/main/tools/netgsm",
+    "namespace": "KodmobTools\\Netgsm",
+    "module": "NetgsmModule",
+    "requires": ["sms"],
+    "icon": "message"
+}
