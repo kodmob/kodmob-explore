@@ -32,7 +32,7 @@
       "repository": "https://github.com/kodmob/kodmob-explore/tree/main/tools/netgsm",
       "download": "https://raw.githubusercontent.com/kodmob/kodmob-explore/main/dist/netgsm-1.0.0.zip",
       "sha256": "75a04ab8308004376254360b65f13cf5d19fda6aa793326fe2b6ab7e9517f48a",
-      "verified": false
+      "verified": true
     }
   ]
 }
