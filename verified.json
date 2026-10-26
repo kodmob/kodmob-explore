@@ -1,4 +1,7 @@
 {
-  "description": "İncelenmiş araç sürümleri (anahtar@sürüm): Keşfet bunlara \"Doğrulanmış\" rozeti koyar. Yalnızca bakımcılar ekler.",
-  "verified": ["merhaba@0.1.0"]
+  "verified": [
+    "merhaba@0.1.0",
+    "netgsm@1.0.0"
+  ],
+  "description": "İncelenmiş araç sürümleri (anahtar@sürüm): Keşfet bunlara Doğrulanmış rozeti koyar. Yalnızca bakımcılar ekler."
 }
