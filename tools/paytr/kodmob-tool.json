@@ -1,0 +1,18 @@
+{
+    "key": "paytr",
+    "label": "PayTR",
+    "description": "Kartla online ödeme (taksit isteğe bağlı): PayTR'nin güvenli ödeme sayfası ve hash denetimli bildirim. PayTR sahibinin ticari markasıdır; Kodmob onunla bağlantılı değildir.",
+    "version": "1.0.0",
+    "kodmob": ">=3.1 <4",
+    "author": "Kodmob",
+    "license": "MIT",
+    "homepage": "https://github.com/kodmob/kodmob-paytr-integration",
+    "namespace": "KodmobTools\\Paytr",
+    "module": "PaytrModule",
+    "requires": [
+        "commerce"
+    ],
+    "public": {
+        "POST v1/shop/payments/paytr": "PayTR bildirimi: hash (merchant_key / merchant_salt) denetimi"
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "nobetci": {
+        "baslik": "Pharmacies on Duty",
+        "ozet1": "On duty: ",
+        "ozet2": ".",
+        "devir1": "Duty changes over at ",
+        "devir2": "; before that time the previous day’s pharmacy is still on duty.",
+        "hata": "The duty list could not be loaded right now. Refresh the page or call the chamber of pharmacists.",
+        "bugunYok": "No pharmacy on duty has been set for today. Please call the chamber of pharmacists.",
+        "ara": "Call: ",
+        "harita": "Open in Maps",
+        "sonraki": "Coming days",
+        "yazilmadi": "Not set yet"
+    }
+}

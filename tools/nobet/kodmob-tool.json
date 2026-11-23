@@ -1,0 +1,94 @@
+{
+    "key": "nobet",
+    "label": "Nöbet",
+    "description": "Eczacı odası nöbet sistemi: bölgeler, gruplar, eczaneler, özel günler; kurallarla adil nöbet döngüsü, takvim ve elle değiştirme; eczacıya Hesabım'da Nöbetlerim (mazeret, takas), oda yöneticisine Oda yönetimi.",
+    "version": "0.3.0",
+    "kodmob": ">=3.2 <4",
+    "author": "Hakkı Cengiz",
+    "license": "MIT",
+    "homepage": "",
+    "namespace": "KodmobTools\\Nobet",
+    "module": "NobetModule",
+    "icon": "calendar",
+    "public": {
+        "GET v1/nobet/oda": "yönetim arayüzünün giriş sayfası ve sitenin oda bilgisi: oda adı, il / ilçe kodu, harita merkezi; kişisel veri yok (throttle)",
+        "GET v1/nobet/nobetciler": "sitenin Nöbetçi Eczaneler sayfası: kamuya açık bilgi (eczane adı, telefon, adres, konum), yalnızca okuma, en çok 31 gün (throttle)",
+        "GET v1/members/nobet": "Nöbetlerim: üye paneli (Hesabım › Nöbetlerim): oturum km_member çerezinde, yalnızca üyenin bağlı eczanesi; oturum yoksa 401",
+        "POST v1/members/nobet/mazeret": "mazeret talebi: üye paneli (Hesabım › Nöbetlerim): oturum km_member çerezinde, yalnızca üyenin bağlı eczanesi; oturum yoksa 401 (throttle)",
+        "DELETE v1/members/nobet/mazeret/{id}": "bekleyen kendi mazeret talebini geri alma: üye paneli (Hesabım › Nöbetlerim): oturum km_member çerezinde, yalnızca üyenin bağlı eczanesi; oturum yoksa 401",
+        "GET v1/members/nobet/takas-adaylari": "takas edilebilecek nöbetler (aynı bölgedeki eczanelerin adı ve günü): üye paneli (Hesabım › Nöbetlerim): oturum km_member çerezinde, yalnızca üyenin bağlı eczanesi; oturum yoksa 401",
+        "POST v1/members/nobet/takas": "nöbet takası teklifi: üye paneli (Hesabım › Nöbetlerim): oturum km_member çerezinde, yalnızca üyenin bağlı eczanesi; oturum yoksa 401 (throttle)",
+        "POST v1/members/nobet/takas/{id}/yanit": "gelen takas teklifine yanıt (yalnızca karşı eczane): üye paneli (Hesabım › Nöbetlerim): oturum km_member çerezinde, yalnızca üyenin bağlı eczanesi; oturum yoksa 401",
+        "DELETE v1/members/nobet/takas/{id}": "kendi takas teklifini geri alma: üye paneli (Hesabım › Nöbetlerim): oturum km_member çerezinde, yalnızca üyenin bağlı eczanesi; oturum yoksa 401",
+        "GET v1/members/nobet/oda": "oda yönetiminin listesi (talepler, takaslar, eczane ↔ hesap): üye paneli (Hesabım › Oda yönetimi): oturum km_member çerezinde, odanın kurumunda yönetici ya da sahip değilse 403",
+        "POST v1/members/nobet/oda/mazeret/{id}/karar": "mazeret talebine karar: üye paneli (Hesabım › Oda yönetimi): oturum km_member çerezinde, odanın kurumunda yönetici ya da sahip değilse 403",
+        "POST v1/members/nobet/oda/takas/{id}/karar": "takasa karar (onayda iki nöbet yer değiştirir): üye paneli (Hesabım › Oda yönetimi): oturum km_member çerezinde, odanın kurumunda yönetici ya da sahip değilse 403",
+        "PUT v1/members/nobet/oda/eczaneler/{id}/uye": "eczaneyi odanın bir üyesine bağlama: üye paneli (Hesabım › Oda yönetimi): oturum km_member çerezinde, odanın kurumunda yönetici ya da sahip değilse 403"
+    },
+    "site": {
+        "routes": [
+            {
+                "name": "nobetciEczaneler",
+                "page": "nobetci",
+                "paths": {
+                    "tr": "/nobetci-eczaneler/",
+                    "en": "/pharmacies-on-duty/"
+                },
+                "title": {
+                    "tr": "Nöbetçi Eczaneler",
+                    "en": "Pharmacies on Duty"
+                },
+                "description": {
+                    "tr": "Bugün ve önümüzdeki günlerde nöbetçi eczaneler: adres, telefon ve harita.",
+                    "en": "Pharmacies on duty today and in the coming days: address, phone and map."
+                },
+                "sitemap": true
+            }
+        ]
+    },
+    "panel": [
+        {
+            "key": "nobet",
+            "path": "nobet/:tab?",
+            "label": "Nöbet",
+            "icon": "calendar",
+            "section": "content",
+            "can": "km_view_nobet",
+            "guide": "Nöbet: Takvim'de nöbetçileri görün ve tek nöbeti başka eczaneye verin; Döngü'de kuralları seçip önizleyin ve kaydedin; Eczaneler, Bölgeler ve Gruplar, Özel günler sekmelerinde kayıtları yönetin.",
+            "hint": "Nöbet takvimi, döngü oluşturma, eczaneler, bölgeler, gruplar, özel günler.",
+            "script": "panel/nobet.js",
+            "template": "panel/nobet.html",
+            "style": "panel/nobet.css",
+            "tabs": {
+                "dongu": "dongu",
+                "eczaneler": "eczaneler",
+                "bolgeler": "bolgeler",
+                "ozelGunler": "ozel-gunler"
+            }
+        }
+    ],
+    "account": [
+        {
+            "key": "nobet-nobetlerim",
+            "page": "hesap-nobetlerim",
+            "label": {
+                "tr": "Nöbetlerim",
+                "en": "My Duties"
+            },
+            "icon": "calendar",
+            "can": "member",
+            "order": 15
+        },
+        {
+            "key": "nobet-oda",
+            "page": "hesap-oda",
+            "label": {
+                "tr": "Oda yönetimi",
+                "en": "Chamber admin"
+            },
+            "icon": "clipboard",
+            "can": "org.manager",
+            "order": 150
+        }
+    ]
+}

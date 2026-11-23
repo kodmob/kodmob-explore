@@ -1,0 +1,18 @@
+{
+    "key": "stripe",
+    "label": "Stripe",
+    "description": "Kartla online ödeme: Stripe'ın ödeme sayfası ve imzalı bildirim. Stripe sahibinin ticari markasıdır; Kodmob onunla bağlantılı değildir.",
+    "version": "1.0.0",
+    "kodmob": ">=3.1 <4",
+    "author": "Kodmob",
+    "license": "MIT",
+    "homepage": "https://github.com/kodmob/kodmob-stripe-integration",
+    "namespace": "KodmobTools\\Stripe",
+    "module": "StripeModule",
+    "requires": [
+        "commerce"
+    ],
+    "public": {
+        "POST v1/shop/payments/stripe": "Stripe bildirimi: imza (Stripe-Signature, whsec_…) ve 5 dakikalık zaman denetimi"
+    }
+}

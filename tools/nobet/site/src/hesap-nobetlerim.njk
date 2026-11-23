@@ -1,0 +1,149 @@
+{#
+  Hesabım › Nöbetlerim (nöbet paketinin üye paneli sayfası `nobet-nobetlerim`): eczacının eczanesi, gelecek nöbetleri,
+  mazeret bildirme, nöbet takası. Mantık hesap-nobetlerim.js; derlenmiş hali site/hesap-nobetlerim.tr.html.
+#}
+<div class="flex flex-col gap-5" x-data="nobetlerim" data-testid="nobet-nobetlerim">
+  <p class="rounded-control border border-line bg-surface-subtle px-4 py-3 text-sm text-ink" role="status" x-show="message" x-text="message" x-cloak></p>
+  <p class="field-error" role="alert" x-show="error" x-text="error" x-cloak></p>
+
+  <div class="flex flex-col gap-3" x-show="!yuklendi"><span class="skeleton h-24"></span><span class="skeleton h-40"></span></div>
+
+  {# Hesap bir eczaneye bağlı değil #}
+  <section class="card card-body flex flex-col gap-2" x-show="yuklendi && !eczane" x-cloak data-testid="nobet-bagsiz">
+    <h2 class="h3">Nöbetlerim</h2>
+    <p class="text-sm text-ink-2">Hesabınız henüz bir eczaneye bağlı değil. Oda yönetimi hesabınızı eczanenize bağladığında nöbetleriniz burada görünür; mazeret bildirebilir ve nöbet takası önerebilirsiniz.</p>
+  </section>
+
+  <template x-if="eczane">
+    <div class="flex flex-col gap-5">
+
+      {# Eczane #}
+      <section class="card card-body flex flex-wrap items-center gap-4" data-testid="nobet-eczane">
+        <div class="min-w-0 flex-1">
+          <p class="text-xs uppercase tracking-wide text-muted">Eczaneniz</p>
+          <h2 class="h3" x-text="eczane.ad"></h2>
+          <p class="text-sm text-ink-2" x-text="[eczane.bolge, eczane.adres, eczane.telefon].filter(Boolean).join(' · ')"></p>
+        </div>
+        <div class="text-right">
+          <p class="text-xs uppercase tracking-wide text-muted">Gelecek / geçmiş nöbet</p>
+          <p class="h3" x-text="nobetler.length + ' / ' + gecmis"></p>
+        </div>
+      </section>
+
+      {# Gelen takas teklifleri #}
+      <section class="card card-body flex flex-col gap-3 border-warning" x-show="gelenTeklifler.length" data-testid="nobet-gelen-takas">
+        <h2 class="h3">Size gelen takas teklifleri</h2>
+        <ul class="divide-y divide-line">
+          <template x-for="t in gelenTeklifler" :key="t.id">
+            <li class="flex flex-wrap items-center gap-3 py-3" :data-takas="t.id">
+              <span class="min-w-0 flex-1 text-sm">
+                <span class="block font-medium text-ink" x-text="t.eczane + ' eczanesi'"></span>
+                <span class="block text-ink-2">Sizin <strong x-text="uzunTarih(t.karsi_tarih)"></strong> nöbetiniz ↔ onun <strong x-text="uzunTarih(t.tarih)"></strong> nöbeti</span>
+                <span class="block text-xs text-muted" x-show="t.aciklama" x-text="t.aciklama"></span>
+              </span>
+              <button type="button" class="btn btn-primary btn-sm" @click="yanit(t, 'kabul')" :disabled="busy" data-testid="nobet-takas-kabul">Kabul et</button>
+              <button type="button" class="btn btn-ghost btn-sm" @click="yanit(t, 'ret')" :disabled="busy" data-testid="nobet-takas-ret">Reddet</button>
+            </li>
+          </template>
+        </ul>
+        <p class="text-xs text-muted" x-show="takasOnayi">Kabul ettiğinizde takas oda yönetiminin onayına gider; nöbetler onaydan sonra değişir.</p>
+      </section>
+
+      {# Gelecek nöbetler #}
+      <section class="card card-body flex flex-col gap-3" data-testid="nobet-nobetler">
+        <h2 class="h3">Gelecek nöbetlerim</h2>
+        <p class="text-sm text-ink-2" x-show="!nobetler.length">Önümüzdeki bir yıl için yazılmış nöbetiniz yok.</p>
+        <ul class="divide-y divide-line" x-show="nobetler.length">
+          <template x-for="n in nobetler" :key="n.id">
+            <li class="flex flex-wrap items-center gap-2 py-2.5" :data-nobet="n.tarih">
+              <span class="min-w-0 flex-1">
+                <span class="block font-medium text-ink" x-text="uzunTarih(n.tarih)"></span>
+                <span class="block text-xs text-muted" x-text="[VARDIYA[n.vardiya], n.ozel_gun_adi].filter(Boolean).join(' · ')"></span>
+              </span>
+              <span class="badge badge-warning" x-show="n.ozel_gun">Özel gün</span>
+              <span class="badge badge-neutral" x-show="acikTakas(n)">Takasta</span>
+              <button type="button" class="btn btn-ghost btn-sm" @click="mazeretGunu(n)">Mazeret</button>
+              <button type="button" class="btn btn-ghost btn-sm" x-show="!acikTakas(n)" @click="takasAc(n)" data-testid="nobet-takas-ac">Takas öner</button>
+            </li>
+          </template>
+        </ul>
+      </section>
+
+      {# Takas önerisi #}
+      <template x-if="takas">
+        <form class="card card-body flex flex-col gap-4" @submit.prevent="takasGonder()" data-testid="nobet-takas-form">
+          <div class="flex items-start gap-2">
+            <h2 class="h3 flex-1">Takas öner: <span x-text="uzunTarih(takas.nobet.tarih)"></span></h2>
+            <button type="button" class="btn-icon" @click="takas = null" aria-label="Kapat"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+          </div>
+          <p class="text-sm text-ink-2">Bu nöbetinizi aynı bölgedeki bir eczanenin başka bir gündeki nöbetiyle değiştirmeyi önerin. Karşı eczane kabul ederse <span x-show="takasOnayi">ve oda yönetimi onaylarsa</span> iki nöbet yer değiştirir.</p>
+          <p class="text-sm text-muted" x-show="takas.yukleniyor">Uygun nöbetler yükleniyor…</p>
+          <p class="text-sm text-ink-2" x-show="!takas.yukleniyor && !takas.adaylar.length">Bu nöbetle takas edilebilecek bir nöbet yok (aynı bölgede, başka günde, açık takası olmayan).</p>
+          <label class="field" x-show="takas.adaylar.length"><span class="field-label">Karşı nöbet</span>
+            <select class="input" x-model="takas.secili" required :aria-invalid="!!errors.karsi_nobet_id" data-testid="nobet-takas-aday">
+              <option value="">Seçin</option>
+              <template x-for="a in takas.adaylar" :key="a.nobet_id"><option :value="a.nobet_id" x-text="uzunTarih(a.tarih) + ' · ' + a.eczane"></option></template>
+            </select>
+            <span class="field-error" x-show="errors.karsi_nobet_id" x-text="errors.karsi_nobet_id"></span></label>
+          <label class="field" x-show="takas.adaylar.length"><span class="field-label">Not (isteğe bağlı)</span>
+            <textarea class="input" rows="2" maxlength="500" x-model="takas.aciklama"></textarea></label>
+          <span class="field-error" x-show="errors.nobet_id" x-text="errors.nobet_id"></span>
+          <button type="submit" class="btn btn-primary btn-sm w-max" x-show="takas.adaylar.length" :disabled="busy || !takas.secili">Teklifi gönder</button>
+        </form>
+      </template>
+
+      {# Mazeret bildir #}
+      <form class="card card-body flex flex-col gap-4" @submit.prevent="mazeretGonder()" data-testid="nobet-mazeret-form">
+        <h2 class="h3">Mazeret bildir</h2>
+        <label class="field"><span class="field-label">Gün</span>
+          <input class="input w-max" type="date" x-model="mazeret.tarih" required :aria-invalid="!!errors.tarih">
+          <span class="field-help">Listedeki bir nöbetin "Mazeret" düğmesi günü doldurur.</span>
+          <span class="field-error" x-show="errors.tarih" x-text="errors.tarih"></span></label>
+        <label class="field"><span class="field-label">Mazeretiniz</span>
+          <textarea class="input" rows="3" maxlength="500" x-model="mazeret.aciklama" required data-nb="mazeret-aciklama" :aria-invalid="!!errors.aciklama"></textarea>
+          <span class="field-error" x-show="errors.aciklama" x-text="errors.aciklama"></span></label>
+        <button type="submit" class="btn btn-primary btn-sm w-max" :disabled="busy">Oda yönetimine gönder</button>
+        <p class="text-xs text-muted">Talebiniz oda yönetimine gider. Onaylanırsa nöbet değişikliğini oda yapar; sonucu aşağıda görürsünüz.</p>
+      </form>
+
+      {# Mazeret talepleri #}
+      <section class="card card-body flex flex-col gap-3" x-show="mazeretler.length" data-testid="nobet-mazeretler">
+        <h2 class="h3">Mazeret taleplerim</h2>
+        <ul class="divide-y divide-line">
+          <template x-for="m in mazeretler" :key="m.id">
+            <li class="flex flex-wrap items-center gap-3 py-2.5" :data-mazeret="m.id">
+              <span class="min-w-0 flex-1 text-sm">
+                <span class="block font-medium text-ink" x-text="uzunTarih(m.tarih)"></span>
+                <span class="block text-ink-2" x-text="m.aciklama"></span>
+                <span class="block text-xs text-muted" x-show="m.karar_notu" x-text="'Oda yönetiminin notu: ' + m.karar_notu"></span>
+                <span class="block text-xs text-muted" x-text="'Gönderildi ' + kisaZaman(m.eklenme)"></span>
+              </span>
+              <span class="badge" :class="mazeretDurumu(m)[1]" x-text="mazeretDurumu(m)[0]"></span>
+              <button type="button" class="text-sm text-danger hover:underline" x-show="m.durum === 'talep'" @click="mazeretGeriAl(m)">Geri al</button>
+            </li>
+          </template>
+        </ul>
+      </section>
+
+      {# Takaslar #}
+      <section class="card card-body flex flex-col gap-3" x-show="takaslar.length" data-testid="nobet-takaslar">
+        <h2 class="h3">Takas taleplerim</h2>
+        <ul class="divide-y divide-line">
+          <template x-for="t in takaslar" :key="t.id">
+            <li class="flex flex-wrap items-center gap-3 py-2.5" :data-takas="t.id">
+              <span class="min-w-0 flex-1 text-sm">
+                <span class="block font-medium text-ink" x-text="t.yon === 'giden' ? t.karsi_eczane + ' eczanesine' : t.eczane + ' eczanesinden'"></span>
+                <span class="block text-ink-2" x-text="t.yon === 'giden' ? 'Sizin ' + uzunTarih(t.tarih) + ' ↔ onun ' + uzunTarih(t.karsi_tarih) : 'Sizin ' + uzunTarih(t.karsi_tarih) + ' ↔ onun ' + uzunTarih(t.tarih)"></span>
+                <span class="block text-xs text-muted" x-show="t.karar_notu" x-text="'Oda yönetiminin notu: ' + t.karar_notu"></span>
+              </span>
+              <span class="badge" :class="takasDurumu(t, takasOnayi)[1]" x-text="takasDurumu(t, takasOnayi)[0]"></span>
+              <button type="button" class="text-sm text-danger hover:underline" x-show="t.yon === 'giden' && ['teklif', 'kabul'].includes(t.durum)" @click="takasIptal(t)" data-testid="nobet-takas-iptal">Geri al</button>
+            </li>
+          </template>
+        </ul>
+      </section>
+
+      <p class="text-sm text-ink-2" x-show="odaYoneticisi">Odanın taleplerine <a class="link" href="?sayfa=nobet-oda">Oda yönetimi</a> sayfasından karar verebilirsiniz.</p>
+    </div>
+  </template>
+</div>

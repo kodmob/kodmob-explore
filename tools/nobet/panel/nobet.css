@@ -1,0 +1,20 @@
+/* Nöbet panel sayfası: takvim satırları (hafta sonu, özel gün) ve nöbet hücresi. Panelin renk belirteçleri. */
+.nb-takvim tr.nb-haftasonu > * {
+  background: color-mix(in srgb, var(--color-primary, #2563eb) 5%, transparent);
+}
+.nb-takvim tr.nb-ozel > * {
+  background: color-mix(in srgb, var(--color-warning, #d97706) 9%, transparent);
+}
+.nb-nobet {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  text-align: left;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.25rem;
+}
+.nb-nobet:hover,
+.nb-nobet:focus-visible {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}

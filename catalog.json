@@ -33,6 +33,55 @@
       "download": "https://raw.githubusercontent.com/kodmob/kodmob-explore/main/dist/netgsm-1.0.0.zip",
       "sha256": "75a04ab8308004376254360b65f13cf5d19fda6aa793326fe2b6ab7e9517f48a",
       "verified": true
+    },
+    {
+      "key": "nobet",
+      "label": "Nöbet",
+      "description": "Eczacı odası nöbet sistemi: bölgeler, gruplar, eczaneler, özel günler; kurallarla adil nöbet döngüsü, takvim ve elle değiştirme; eczacıya Hesabım'da Nöbetlerim (mazeret, takas), oda yöneticisine Oda yönetimi.",
+      "author": "Hakkı Cengiz",
+      "license": "MIT",
+      "version": "0.3.0",
+      "kodmob": ">=3.2 <4",
+      "requires": [],
+      "homepage": "",
+      "repository": "https://github.com/kodmob/kodmob-explore/tree/main/tools/nobet",
+      "download": "https://raw.githubusercontent.com/kodmob/kodmob-explore/main/dist/nobet-0.3.0.zip",
+      "sha256": "a8fa0dd766b8c10a0034659e0777768887631d0d125f424291223592c47b409f",
+      "verified": false
+    },
+    {
+      "key": "paytr",
+      "label": "PayTR",
+      "description": "Kartla online ödeme (taksit isteğe bağlı): PayTR'nin güvenli ödeme sayfası ve hash denetimli bildirim. PayTR sahibinin ticari markasıdır; Kodmob onunla bağlantılı değildir.",
+      "author": "Kodmob",
+      "license": "MIT",
+      "version": "1.0.0",
+      "kodmob": ">=3.1 <4",
+      "requires": [
+        "commerce"
+      ],
+      "homepage": "https://github.com/kodmob/kodmob-paytr-integration",
+      "repository": "https://github.com/kodmob/kodmob-explore/tree/main/tools/paytr",
+      "download": "https://raw.githubusercontent.com/kodmob/kodmob-explore/main/dist/paytr-1.0.0.zip",
+      "sha256": "594f1523bbe50e730ec23b2d929615944a49a759ca198360d7dcd7bced309d41",
+      "verified": false
+    },
+    {
+      "key": "stripe",
+      "label": "Stripe",
+      "description": "Kartla online ödeme: Stripe'ın ödeme sayfası ve imzalı bildirim. Stripe sahibinin ticari markasıdır; Kodmob onunla bağlantılı değildir.",
+      "author": "Kodmob",
+      "license": "MIT",
+      "version": "1.0.0",
+      "kodmob": ">=3.1 <4",
+      "requires": [
+        "commerce"
+      ],
+      "homepage": "https://github.com/kodmob/kodmob-stripe-integration",
+      "repository": "https://github.com/kodmob/kodmob-explore/tree/main/tools/stripe",
+      "download": "https://raw.githubusercontent.com/kodmob/kodmob-explore/main/dist/stripe-1.0.0.zip",
+      "sha256": "6df7603f34c07877911d1a590166371b0bc8a28d21e68534ac70a0aff1264115",
+      "verified": false
     }
   ]
 }
