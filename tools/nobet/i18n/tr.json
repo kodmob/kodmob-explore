@@ -1,0 +1,15 @@
+{
+    "nobetci": {
+        "baslik": "Nöbetçi Eczaneler",
+        "ozet1": "",
+        "ozet2": " nöbetçileri.",
+        "devir1": "Nöbet ",
+        "devir2": "'de devredilir; bu saatten önce bir önceki günün nöbetçisi açıktır.",
+        "hata": "Nöbetçi listesi şu anda yüklenemedi. Sayfayı yenileyin ya da eczacı odasını arayın.",
+        "bugunYok": "Bugün için nöbetçi eczane yazılmamış. Eczacı odasını arayın.",
+        "ara": "Ara: ",
+        "harita": "Haritada aç",
+        "sonraki": "Önümüzdeki günler",
+        "yazilmadi": "Henüz yazılmadı"
+    }
+}

@@ -1,0 +1,97 @@
+<div class="flex flex-col gap-5" x-data="nobetOda" data-testid="nobet-oda">
+  <p class="rounded-control border border-line bg-surface-subtle px-4 py-3 text-sm text-ink" role="status" x-show="message" x-text="message" x-cloak></p>
+  <p class="field-error" role="alert" x-show="error" x-text="error" x-cloak></p>
+
+  <div class="flex flex-wrap gap-2" role="tablist">
+    <button type="button" class="btn btn-sm" :class="sekme === 'talepler' ? 'btn-primary' : 'btn-ghost'" @click="sekme = 'talepler'" role="tab" :aria-selected="sekme === 'talepler'">
+      Talepler <span class="badge badge-warning" x-show="bekleyenMazeret.length + bekleyenTakas.length" x-text="bekleyenMazeret.length + bekleyenTakas.length"></span></button>
+    <button type="button" class="btn btn-sm" :class="sekme === 'eczaneler' ? 'btn-primary' : 'btn-ghost'" @click="sekme = 'eczaneler'" role="tab" :aria-selected="sekme === 'eczaneler'" data-testid="nobet-oda-eczaneler-sekme">
+      Eczaneler ve hesaplar <span class="badge badge-neutral" x-show="bagsiz" x-text="bagsiz"></span></button>
+  </div>
+
+  <div class="flex flex-col gap-5" x-show="sekme === 'talepler'">
+    <p class="text-sm text-ink-2" x-show="yuklendi && !bekleyenMazeret.length && !bekleyenTakas.length">Karar bekleyen talep yok.</p>
+
+    
+    <section class="card card-body flex flex-col gap-3" x-show="bekleyenTakas.length" data-testid="nobet-oda-takaslar">
+      <h2 class="h3">Onay bekleyen takaslar</h2>
+      <p class="text-xs text-muted">İki eczane de kabul etti. Onaylarsanız iki nöbetin eczanesi yer değiştirir; motorun kuralları yeniden denetlenmez.</p>
+      <ul class="divide-y divide-line">
+        <template x-for="t in bekleyenTakas" :key="t.id">
+          <li class="flex flex-col gap-2 py-3" :data-takas="t.id">
+            <span class="text-sm">
+              <span class="block font-medium text-ink"><span x-text="t.eczane"></span> ↔ <span x-text="t.karsi_eczane"></span></span>
+              <span class="block text-ink-2"><span x-text="uzunTarih(t.tarih)"></span> ↔ <span x-text="uzunTarih(t.karsi_tarih)"></span></span>
+              <span class="block text-xs text-muted" x-show="t.aciklama" x-text="t.aciklama"></span>
+            </span>
+            <div class="flex flex-wrap items-center gap-2">
+              <input class="input min-w-0 flex-1" maxlength="500" placeholder="Not (isteğe bağlı)" x-model="notlar['t' + t.id]" aria-label="Not">
+              <button type="button" class="btn btn-primary btn-sm" @click="takasKarari(t, 'onay')" :disabled="busy" data-testid="nobet-oda-takas-onay">Onayla</button>
+              <button type="button" class="btn btn-ghost btn-sm" @click="takasKarari(t, 'ret')" :disabled="busy">Reddet</button>
+            </div>
+          </li>
+        </template>
+      </ul>
+    </section>
+
+    
+    <section class="card card-body flex flex-col gap-3" x-show="bekleyenMazeret.length" data-testid="nobet-oda-mazeretler">
+      <h2 class="h3">Bekleyen mazeretler</h2>
+      <p class="text-xs text-muted">Onay nöbeti kendiliğinden değiştirmez: yerine bakacak eczaneyi yönetim arayüzünün Nöbet Kayıtları sayfasından yazın.</p>
+      <ul class="divide-y divide-line">
+        <template x-for="m in bekleyenMazeret" :key="m.id">
+          <li class="flex flex-col gap-2 py-3" :data-mazeret="m.id">
+            <span class="text-sm">
+              <span class="block font-medium text-ink"><span x-text="m.eczane"></span> · <span x-text="uzunTarih(m.tarih)"></span></span>
+              <span class="block text-ink-2" x-text="m.aciklama"></span>
+              <span class="block text-xs text-muted" x-text="'Gönderildi ' + kisaZaman(m.eklenme)"></span>
+            </span>
+            <div class="flex flex-wrap items-center gap-2">
+              <input class="input min-w-0 flex-1" maxlength="500" placeholder="Not (isteğe bağlı)" x-model="notlar['m' + m.id]" aria-label="Not">
+              <button type="button" class="btn btn-primary btn-sm" @click="mazeretKarari(m, 'onay')" :disabled="busy" data-testid="nobet-oda-mazeret-onay">Onayla</button>
+              <button type="button" class="btn btn-ghost btn-sm" @click="mazeretKarari(m, 'ret')" :disabled="busy">Reddet</button>
+            </div>
+          </li>
+        </template>
+      </ul>
+    </section>
+
+    
+    <section class="card card-body flex flex-col gap-3" x-show="sonuclanan.length">
+      <h2 class="h3">Son talepler</h2>
+      <ul class="divide-y divide-line">
+        <template x-for="k in sonuclanan" :key="k.tip + k.id">
+          <li class="flex flex-wrap items-center gap-3 py-2 text-sm">
+            <span class="min-w-0 flex-1">
+              <template x-if="k.tip === 'mazeret'"><span><span class="font-medium text-ink">Mazeret</span> · <span x-text="k.eczane"></span> · <span x-text="uzunTarih(k.tarih)"></span></span></template>
+              <template x-if="k.tip === 'takas'"><span><span class="font-medium text-ink">Takas</span> · <span x-text="k.eczane + ' ↔ ' + k.karsi_eczane"></span> · <span x-text="uzunTarih(k.tarih) + ' ↔ ' + uzunTarih(k.karsi_tarih)"></span></span></template>
+            </span>
+            <span class="badge" :class="(k.tip === 'mazeret' ? mazeretDurumu(k) : takasDurumu(k))[1]" x-text="(k.tip === 'mazeret' ? mazeretDurumu(k) : takasDurumu(k))[0]"></span>
+          </li>
+        </template>
+      </ul>
+    </section>
+  </div>
+
+  
+  <section class="card card-body flex flex-col gap-3" x-show="sekme === 'eczaneler'" x-cloak data-testid="nobet-oda-eczaneler">
+    <h2 class="h3">Eczaneler ve hesaplar</h2>
+    <p class="text-sm text-ink-2">Her eczaneyi eczacısının hesabına bağlayın: eczacı Nöbetlerim sayfasında nöbetlerini görür, mazeret bildirir ve takas önerir. Listede odanın üyeleri var; yeni eczacıyı önce Kurum üyeleri sayfasından davet edin.</p>
+    <input class="input" type="search" placeholder="Eczane, bölge ya da kişi ara" x-model="ara" aria-label="Ara">
+    <ul class="divide-y divide-line">
+      <template x-for="e in liste" :key="e.id">
+        <li class="flex flex-wrap items-center gap-3 py-2.5" :data-eczane="e.id">
+          <span class="min-w-0 flex-1">
+            <span class="block font-medium text-ink" x-text="e.ad"></span>
+            <span class="block text-xs text-muted" x-text="[e.bolge, e.aktif ? '' : 'pasif'].filter(Boolean).join(' · ')"></span>
+          </span>
+          <select class="input w-60 max-w-full" @change="bagla(e, $event.target.value)" :disabled="busy" aria-label="Hesap" data-testid="nobet-oda-bagla">
+            <option value="" :selected="!e.uye_id">Bağlı hesap yok</option>
+            <template x-if="e.uye_id && !uyeler.some((u) => u.id === e.uye_id)"><option :value="e.uye_id" selected x-text="e.uye"></option></template>
+            <template x-for="u in uyeler" :key="u.id"><option :value="u.id" :selected="e.uye_id === u.id" x-text="u.ad + ' (' + u.eposta + ')'"></option></template>
+          </select>
+        </li>
+      </template>
+    </ul>
+  </section>
+</div>

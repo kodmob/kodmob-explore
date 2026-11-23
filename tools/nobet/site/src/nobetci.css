@@ -1,0 +1,3 @@
+/* Nöbetçi Eczaneler: liste tarayıcıda gelir; alanı baştan bir ekran boyu ayrılır ki liste dolunca alt bilgi aşağı
+   kaymasın (düzen kayması, CLS). */
+.nobetci-sayfa { min-height: 100svh; }

@@ -1,0 +1,481 @@
+<div class="pn-page" x-data="kmNobet(r)" data-testid="nobet">
+  <div class="pn-bar">
+    <div class="min-w-0 flex-1">
+      <p class="pn-bar-title">Nöbet</p>
+      <p class="pn-bar-meta">
+        <span><strong class="text-ink" x-text="eczaneler.filter((e) => e.aktif).length"></strong> etkin eczane</span>
+        <span><span x-text="bolgeler.length"></span> bölge</span>
+      </p>
+    </div>
+    <template x-if="yonetir">
+      <div class="flex gap-2">
+        <button type="button" class="btn btn-primary" x-show="sekme === 'eczaneler'" @click="eczaneAc()" :disabled="!bolgeler.length" data-testid="eczane-yeni"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('plus')"/></svg> Eczane ekle</button>
+      </div>
+    </template>
+  </div>
+
+  <div class="pn-tabs w-max" role="tablist" aria-label="Nöbet">
+    <template x-for="s in sekmeler" :key="s.key">
+      <button type="button" role="tab" class="pn-tab" :aria-selected="sekme === s.key" @click="goster(s.key)" :data-tab="s.key">
+        <svg class="icon icon-sm" aria-hidden="true"><use :href="ikon(s.icon)"/></svg> <span x-text="s.label"></span>
+      </button>
+    </template>
+  </div>
+
+  <template x-if="yukleniyor"><div class="flex flex-col gap-3"><span class="skeleton h-24"></span><span class="skeleton h-64"></span></div></template>
+
+  
+  <section x-show="!yukleniyor && sekme === 'takvim'" class="card card-body flex flex-col gap-4" data-testid="nobet-takvim">
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="button" class="btn-icon" @click="ayKaydir(-1)" aria-label="Önceki ay"><svg class="icon" aria-hidden="true"><use :href="ikon('chevron-left')"/></svg></button>
+      <h2 class="h3 min-w-40 text-center" x-text="ayAdi"></h2>
+      <button type="button" class="btn-icon" @click="ayKaydir(1)" aria-label="Sonraki ay"><svg class="icon" aria-hidden="true"><use :href="ikon('chevron-right')"/></svg></button>
+      <input type="month" class="input w-auto" x-model="ay" @change="takvimYukle()" aria-label="Ay seç">
+      <button type="button" class="btn btn-secondary ml-auto" @click="csvIndir()" :disabled="takvim.bos"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('download')"/></svg> Excel (CSV) indir</button>
+    </div>
+    <p class="text-sm text-ink-2" x-show="takvim.bos && !takvimYukleniyor">Bu ay için nöbet yazılmamış. Döngü sekmesinden döngü oluşturun.</p>
+    <div class="pn-table-wrap">
+      <table class="pn-table nb-takvim" :class="takvimYukleniyor && 'opacity-50'">
+        <thead>
+          <tr>
+            <th scope="col">Tarih</th>
+            <template x-for="b in takvim.bolgeler" :key="b.id"><th scope="col" x-text="b.ad"></th></template>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="s in takvim.satirlar" :key="s.tarih">
+            <tr :class="{ 'nb-haftasonu': s.haftasonu, 'nb-ozel': s.ozel }">
+              <th scope="row" class="whitespace-nowrap">
+                <span x-text="gunAyYil(s.tarih)"></span> <span class="text-muted" x-text="s.gun"></span>
+                <span class="badge badge-warning ml-1" x-show="s.ozel" x-text="s.ozel"></span>
+              </th>
+              <template x-for="b in takvim.bolgeler" :key="b.id">
+                <td>
+                  <template x-for="n in (s.hucreler[b.id] || [])" :key="n.id">
+                    <button type="button" class="nb-nobet" @click="nobetAc(n)" :title="'Ayrıntı: ' + (n.eczane || '')">
+                      <span class="text-xs text-muted" x-show="vardiyalar[n.vardiya]" x-text="vardiyalar[n.vardiya] + ':'"></span>
+                      <span x-text="n.eczane || '?'"></span>
+                      <svg class="icon icon-xs text-warning" x-show="n.kaynak === 'elle'" aria-label="Elle değiştirildi"><use :href="ikon('pencil')"/></svg>
+                    </button>
+                  </template>
+                  <span class="text-muted" x-show="!(s.hucreler[b.id] || []).length">—</span>
+                </td>
+              </template>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  
+  <div x-show="!yukleniyor && sekme === 'dongu'" x-cloak class="flex flex-col gap-4" data-testid="nobet-dongu">
+    <template x-if="yonetir">
+      <form class="card card-body flex flex-col gap-5" @submit.prevent="onizle()">
+        <div class="grid gap-4 md:grid-cols-3">
+          <div class="field">
+            <label class="field-label" for="nb-baslangic">Başlangıç</label>
+            <input id="nb-baslangic" type="date" class="input" x-model="dongu.baslangic" @change="onizleme = null" :aria-invalid="!!hatalar.baslangic" required>
+            <p class="field-error" x-show="hatalar.baslangic" x-text="hatalar.baslangic"></p>
+          </div>
+          <div class="field">
+            <label class="field-label" for="nb-gun">Kaç gün</label>
+            <input id="nb-gun" type="number" min="1" max="366" class="input" x-model.number="dongu.gun" @change="onizleme = null" :aria-invalid="!!hatalar.gun" required>
+            <p class="field-help">Odaların çoğu üç aylık (90 gün) döngü kurar.</p>
+            <p class="field-error" x-show="hatalar.gun" x-text="hatalar.gun"></p>
+          </div>
+          <div class="field">
+            <label class="field-label" for="nb-tohum">Kura numarası <span class="text-xs font-normal text-muted">(isteğe bağlı)</span></label>
+            <input id="nb-tohum" class="input" inputmode="numeric" x-model="dongu.tohum" :aria-invalid="!!hatalar.tohum">
+            <p class="field-help">Aynı veri ve aynı numara aynı takvimi verir. Önizleme numarayı yazar; kaydedilen takvim önizlenenle aynı olur.</p>
+            <p class="field-error" x-show="hatalar.tohum" x-text="hatalar.tohum"></p>
+          </div>
+          <div class="field" x-show="dongu.secili.includes('R')">
+            <label class="field-label" for="nb-aralik">R: iki nöbet arası en az gün</label>
+            <input id="nb-aralik" type="number" min="1" max="60" class="input" x-model.number="dongu.aralik" @change="onizleme = null" :aria-invalid="!!hatalar.en_az_aralik">
+            <p class="field-help">7: bir eczaneye bir hafta dolmadan ikinci nöbet yazılmaz (uygun eczane kalmazsa esnetilir, uyarı verilir).</p>
+            <p class="field-error" x-show="hatalar.en_az_aralik" x-text="hatalar.en_az_aralik"></p>
+          </div>
+          <div class="field">
+            <label class="field-label" for="nb-sayac">Geçmiş nöbetleri şu tarihten say <span class="text-xs font-normal text-muted">(isteğe bağlı)</span></label>
+            <input id="nb-sayac" type="date" class="input" x-model="dongu.sayacBaslangic" @change="onizleme = null" :aria-invalid="!!hatalar.sayac_baslangic">
+            <p class="field-help">Boşsa bütün geçmiş (ve eski sistemden devir) sayılır. Tarih verilirse "en az nöbet tutan" kuralları yalnızca o günden sonraki nöbetlere bakar.</p>
+            <p class="field-error" x-show="hatalar.sayac_baslangic" x-text="hatalar.sayac_baslangic"></p>
+          </div>
+        </div>
+
+        <fieldset class="flex flex-col gap-2">
+          <legend class="field-label">Kurallar <span class="text-xs font-normal text-muted">(yukarıdaki önce uygulanır; sıra sonucu değiştirir)</span></legend>
+          <ol class="flex flex-col divide-y divide-line rounded-lg border border-line">
+            <template x-for="(harf, i) in dongu.sira" :key="harf">
+              <li class="flex items-center gap-3 px-3 py-2">
+                <input type="checkbox" class="h-4.5 w-4.5 accent-primary" :id="'nb-kural-' + harf" :checked="dongu.secili.includes(harf)" @change="kuralSec(harf)">
+                <label class="flex-1 text-sm" :for="'nb-kural-' + harf"><strong class="mr-1" x-text="harf"></strong> <span x-text="kural(harf).etiket"></span></label>
+                <button type="button" class="btn btn-ghost btn-sm" @click="kuralTasi(i, -1)" :disabled="i === 0" :aria-label="harf + ' yukarı'">↑</button>
+                <button type="button" class="btn btn-ghost btn-sm" @click="kuralTasi(i, 1)" :disabled="i === dongu.sira.length - 1" :aria-label="harf + ' aşağı'">↓</button>
+              </li>
+            </template>
+          </ol>
+          <p class="field-error" x-show="hatalar.kurallar" x-text="hatalar.kurallar"></p>
+        </fieldset>
+
+        
+        <div class="grid gap-4 lg:grid-cols-2">
+          <fieldset class="flex flex-col gap-2" x-show="dongu.secili.includes('G')">
+            <legend class="field-label">G · Aynı gün nöbetçi olmayacak eczaneler</legend>
+            <template x-for="(r, i) in dongu.ikili" :key="i">
+              <div class="flex gap-2">
+                <select class="input" x-model="r[0]" aria-label="Birinci eczane"><option value="">Eczane</option><template x-for="e in eczaneler" :key="e.id"><option :value="e.id" x-text="e.ad" :selected="Number(r[0]) === e.id"></option></template></select>
+                <select class="input" x-model="r[1]" aria-label="İkinci eczane"><option value="">Eczane</option><template x-for="e in eczaneler" :key="e.id"><option :value="e.id" x-text="e.ad" :selected="Number(r[1]) === e.id"></option></template></select>
+                <button type="button" class="btn-icon" @click="dongu.ikili.splice(i, 1)" aria-label="Satırı sil"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('x')"/></svg></button>
+              </div>
+            </template>
+            <button type="button" class="btn btn-ghost btn-sm self-start" @click="dongu.ikili.push(['', ''])"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('plus')"/></svg> Satır ekle</button>
+            <p class="field-error" x-show="hatalar.ikili_engeller" x-text="hatalar.ikili_engeller"></p>
+          </fieldset>
+
+          <fieldset class="flex flex-col gap-2" x-show="dongu.secili.includes('H')">
+            <legend class="field-label">H · Eczanenin nöbet tutmayacağı tarihler</legend>
+            <template x-for="(r, i) in dongu.tarihEngelleri" :key="i">
+              <div class="flex flex-wrap gap-2">
+                <select class="input flex-1" x-model="r.eczane" aria-label="Eczane"><option value="">Eczane</option><template x-for="e in eczaneler" :key="e.id"><option :value="e.id" x-text="e.ad" :selected="Number(r.eczane) === e.id"></option></template></select>
+                <input type="date" class="input w-auto" x-model="r.baslangic" aria-label="Başlangıç">
+                <input type="date" class="input w-auto" x-model="r.bitis" aria-label="Bitiş">
+                <button type="button" class="btn-icon" @click="dongu.tarihEngelleri.splice(i, 1)" aria-label="Satırı sil"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('x')"/></svg></button>
+              </div>
+            </template>
+            <button type="button" class="btn btn-ghost btn-sm self-start" @click="dongu.tarihEngelleri.push({ eczane: '', baslangic: dongu.baslangic, bitis: dongu.baslangic })"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('plus')"/></svg> Satır ekle</button>
+            <p class="field-error" x-show="hatalar.tarih_engelleri" x-text="hatalar.tarih_engelleri"></p>
+          </fieldset>
+
+          <fieldset class="flex flex-col gap-2" x-show="dongu.secili.includes('I')">
+            <legend class="field-label">I · Aynı gün nöbetçi olmayacak gruplar</legend>
+            <template x-for="(r, i) in dongu.grupEngelleri" :key="i">
+              <div class="flex gap-2">
+                <select class="input" x-model="r[0]" aria-label="Birinci grup"><option value="">Grup</option><template x-for="g in gruplar" :key="g.id"><option :value="g.id" x-text="g.ad" :selected="Number(r[0]) === g.id"></option></template></select>
+                <select class="input" x-model="r[1]" aria-label="İkinci grup"><option value="">Grup</option><template x-for="g in gruplar" :key="g.id"><option :value="g.id" x-text="g.ad" :selected="Number(r[1]) === g.id"></option></template></select>
+                <button type="button" class="btn-icon" @click="dongu.grupEngelleri.splice(i, 1)" aria-label="Satırı sil"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('x')"/></svg></button>
+              </div>
+            </template>
+            <button type="button" class="btn btn-ghost btn-sm self-start" @click="dongu.grupEngelleri.push(['', ''])"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('plus')"/></svg> Satır ekle</button>
+            <p class="field-error" x-show="hatalar.grup_engelleri" x-text="hatalar.grup_engelleri"></p>
+          </fieldset>
+
+          <fieldset class="flex flex-col gap-2" x-show="dongu.secili.includes('K')">
+            <legend class="field-label">K · Cumartesi gündüz nöbetçi sayısı (bölge başına; boş: 1, gece her bölgeye 1)</legend>
+            <template x-for="b in bolgeler" :key="b.id">
+              <label class="flex items-center gap-3 text-sm"><span class="flex-1" x-text="b.ad"></span><input type="number" min="0" max="10" class="input w-24" x-model="dongu.gunduz[b.id]" placeholder="1"></label>
+            </template>
+            <p class="field-error" x-show="hatalar.cumartesi_gunduz" x-text="hatalar.cumartesi_gunduz"></p>
+          </fieldset>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button type="submit" class="btn btn-secondary" :disabled="mesgul" data-testid="dongu-onizle">
+            <svg class="icon icon-sm" :class="mesgul === 'onizle' && 'animate-spin'" aria-hidden="true"><use :href="ikon(mesgul === 'onizle' ? 'loader' : 'calendar')"/></svg> Önizle
+          </button>
+          <button type="button" class="btn btn-primary" @click="olustur()" :disabled="mesgul || !onizleme" :title="onizleme ? '' : 'Önce önizleyin'" data-testid="dongu-kaydet">
+            <svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('check')"/></svg> Döngüyü kaydet
+          </button>
+        </div>
+      </form>
+    </template>
+
+    <template x-if="onizleme">
+      <section class="card card-body flex flex-col gap-3" data-testid="dongu-onizleme">
+        <h2 class="h3">Önizleme</h2>
+        <p class="text-sm text-ink-2">
+          <strong class="text-ink" x-text="onizleme.atama_sayisi"></strong> nöbet · kura numarası <span class="code" x-text="onizleme.tohum"></span>
+          <span x-show="onizleme.atlanan_gunler.length" x-text="' · nöbeti önceden yazılmış ' + onizleme.atlanan_gunler.length + ' gün atlandı'"></span>
+        </p>
+        <div class="pn-alert" role="status" x-show="onizleme.uyarilar.length">
+          <p class="font-semibold">Uyarılar (döngü kurulur, ama bilmeniz gerekir):</p>
+          <ul class="mt-1 list-disc pl-5 text-sm"><template x-for="(u, i) in onizleme.uyarilar.slice(0, 20)" :key="i"><li x-text="u"></li></template></ul>
+          <p class="text-sm" x-show="onizleme.uyarilar.length > 20" x-text="'… ve ' + (onizleme.uyarilar.length - 20) + ' uyarı daha'"></p>
+        </div>
+        <div class="pn-table-wrap">
+          <table class="pn-table nb-takvim">
+            <thead><tr><th scope="col">Tarih</th><template x-for="b in bolgeler" :key="b.id"><th scope="col" x-text="b.ad"></th></template></tr></thead>
+            <tbody>
+              <template x-for="s in onizleme.satirlar" :key="s.tarih">
+                <tr :class="{ 'nb-haftasonu': s.haftasonu }">
+                  <th scope="row" class="whitespace-nowrap"><span x-text="gunAyYil(s.tarih)"></span> <span class="text-muted" x-text="s.gun"></span></th>
+                  <template x-for="b in bolgeler" :key="b.id">
+                    <td><template x-for="(n, j) in (s.hucreler[b.id] || [])" :key="j"><span class="block"><span class="text-xs text-muted" x-show="vardiyalar[n.vardiya]" x-text="vardiyalar[n.vardiya] + ': '"></span><span x-text="n.eczane"></span></span></template></td>
+                  </template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-xs text-muted" x-show="onizleme.atama_sayisi && onizleme.satirlar.length >= 62">İlk 62 gün gösteriliyor; kaydedince takvimde ay ay görünür.</p>
+      </section>
+    </template>
+
+    <section class="card card-body flex flex-col gap-3">
+      <h2 class="h3">Döngüler</h2>
+      <p class="text-sm text-ink-2" x-show="!donguler.length">Henüz döngü yok.</p>
+      <template x-for="d in donguler" :key="d.id">
+        <div class="flex flex-wrap items-center gap-3 border-t border-line pt-3" data-testid="dongu">
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-ink" x-text="d.ad"></p>
+            <p class="text-sm text-muted"><span x-text="d.atama_sayisi + ' nöbet · kurallar ' + (d.kurallar || '—') + ' · kura ' + d.tohum"></span> · <span x-text="fmt.dateTime(d.created_at)"></span></p>
+            <p class="text-xs text-warning" x-show="d.uyarilar.length" x-text="d.uyarilar.length + ' uyarı'"></p>
+          </div>
+          <button type="button" class="btn-icon" x-show="yonetir" @click="donguSil(d)" aria-label="Döngüyü sil" title="Döngüyü ve nöbetlerini sil"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('trash')"/></svg></button>
+        </div>
+      </template>
+    </section>
+  </div>
+
+  
+  <div x-show="!yukleniyor && sekme === 'eczaneler'" x-cloak>
+    <template x-if="grid">
+      <div x-data="kmGrid(grid)" @grid-action="eczaneIslem($event.detail)">
+        <!--km:grid-->
+      </div>
+    </template>
+  </div>
+
+  
+  <div x-show="!yukleniyor && sekme === 'bolgeler'" x-cloak class="grid gap-4 lg:grid-cols-2">
+    <section class="card card-body flex flex-col gap-3" data-testid="nobet-bolgeler">
+      <div class="flex items-center gap-2">
+        <h2 class="h3 flex-1">Bölgeler</h2>
+        <button type="button" class="btn btn-secondary btn-sm" x-show="yonetir" @click="bolgeAc()"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('plus')"/></svg> Bölge</button>
+      </div>
+      <p class="text-sm text-ink-2">Her gün her bölgeye ayrı nöbetçi yazılır; sıra takvimdeki sütun sırasıdır.</p>
+      <template x-for="b in bolgeler" :key="b.id">
+        <div class="flex items-center gap-3 border-t border-line pt-3">
+          <span class="badge" x-text="b.sira"></span>
+          <p class="flex-1 font-medium text-ink" x-text="b.ad"></p>
+          <span class="text-sm text-muted" x-text="b.eczane_sayisi + ' eczane'"></span>
+          <template x-if="yonetir">
+            <div class="flex gap-1">
+              <button type="button" class="btn-icon" @click="bolgeAc(b)" aria-label="Düzenle"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('pencil')"/></svg></button>
+              <button type="button" class="btn-icon" @click="kayitSil('bolgeler', b, b.ad)" aria-label="Sil"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('trash')"/></svg></button>
+            </div>
+          </template>
+        </div>
+      </template>
+    </section>
+
+    <section class="card card-body flex flex-col gap-3" data-testid="nobet-gruplar">
+      <div class="flex items-center gap-2">
+        <h2 class="h3 flex-1">Gruplar</h2>
+        <button type="button" class="btn btn-secondary btn-sm" x-show="yonetir" @click="grupAc()"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('plus')"/></svg> Grup</button>
+      </div>
+      <p class="text-sm text-ink-2">Aynı gün aynı bölgeden aynı gruptan ikinci nöbetçi seçilmez. J kuralında günün ilk nöbetçisinin grubu, öteki bölgelerin eş ya da yedek gruptan seçilmesini sağlar.</p>
+      <template x-for="g in gruplar" :key="g.id">
+        <div class="flex items-start gap-3 border-t border-line pt-3">
+          <div class="min-w-0 flex-1">
+            <p class="font-medium text-ink" x-text="g.ad"></p>
+            <p class="text-xs text-muted">
+              <span x-text="g.eczane_sayisi + ' eczane'"></span>
+              <span x-show="g.eslesme.length" x-text="' · eş: ' + g.eslesme.map((id) => grupAdi(id)).join(', ')"></span>
+              <span x-show="g.yedek_id" x-text="' · yedek: ' + grupAdi(g.yedek_id)"></span>
+              <span x-show="g.ust_id" x-text="' · üst grup: ' + grupAdi(g.ust_id)"></span>
+            </p>
+          </div>
+          <template x-if="yonetir">
+            <div class="flex gap-1">
+              <button type="button" class="btn-icon" @click="grupAc(g)" aria-label="Düzenle"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('pencil')"/></svg></button>
+              <button type="button" class="btn-icon" @click="kayitSil('gruplar', g, g.ad)" aria-label="Sil"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('trash')"/></svg></button>
+            </div>
+          </template>
+        </div>
+      </template>
+    </section>
+  </div>
+
+  
+  <section x-show="!yukleniyor && sekme === 'ozelGunler'" x-cloak class="card card-body flex flex-col gap-3" data-testid="nobet-ozel-gunler">
+    <p class="text-sm text-ink-2">Bayram, yılbaşı gibi günler. Bu günlerin nöbeti adalet sayaçlarına girmez; döngüde O kuralı seçilirse boş bırakılır (kurayla elle yazılır).</p>
+    <template x-if="yonetir">
+      <form class="flex flex-wrap items-start gap-2" @submit.prevent="ozelGunEkle()">
+        <div class="field"><input type="date" class="input" x-model="ozelGun.tarih" aria-label="Tarih" :aria-invalid="!!hatalar.tarih" required><p class="field-error" x-show="hatalar.tarih" x-text="hatalar.tarih"></p></div>
+        <div class="field flex-1"><input class="input" x-model="ozelGun.ad" maxlength="120" placeholder="Ör. Ramazan Bayramı 1. gün" aria-label="Ad" :aria-invalid="!!hatalar.ad" required><p class="field-error" x-show="hatalar.ad" x-text="hatalar.ad"></p></div>
+        <button type="submit" class="btn btn-primary" :disabled="mesgul"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('plus')"/></svg> Ekle</button>
+      </form>
+    </template>
+    <template x-for="g in ozelGunler" :key="g.id">
+      <div class="flex items-center gap-3 border-t border-line pt-3">
+        <span class="w-28 text-sm text-muted" x-text="gunAyYil(g.tarih)"></span>
+        <p class="flex-1 text-ink" x-text="g.ad"></p>
+        <button type="button" class="btn-icon" x-show="yonetir" @click="kayitSil('ozel-gunler', g, g.ad)" aria-label="Sil"><svg class="icon icon-sm" aria-hidden="true"><use :href="ikon('trash')"/></svg></button>
+      </div>
+    </template>
+  </section>
+
+  
+  <template x-if="secili">
+    <div>
+      <div class="pn-modal-backdrop" @click="mesgul || (secili = null)"></div>
+      <div class="pn-modal-wrap">
+        <form class="pn-modal max-w-lg" role="dialog" aria-modal="true" aria-labelledby="nb-nobet-baslik" @submit.prevent="degistir()" @keydown.escape.window="mesgul || (secili = null)" data-testid="nobet-ayrinti">
+          <header class="pn-modal-head">
+            <h2 id="nb-nobet-baslik" class="h3"><span x-text="gunAyYil(secili.tarih)"></span> · <span x-text="bolgeAdi(secili.bolge_id)"></span></h2>
+            <button type="button" class="btn-icon ml-auto" @click="secili = null" aria-label="Kapat"><svg class="icon" aria-hidden="true"><use :href="ikon('x')"/></svg></button>
+          </header>
+          <div class="flex flex-col gap-4 p-5">
+            <div>
+              <p class="font-semibold text-ink" x-text="secili.eczane"></p>
+              <p class="text-sm text-muted" x-text="[secili.telefon, secili.adres].filter(Boolean).join(' · ')"></p>
+              <p class="mt-1 text-xs text-muted"><span x-text="kaynaklar[secili.kaynak] || secili.kaynak"></span><span x-show="vardiyalar[secili.vardiya]" x-text="' · ' + vardiyalar[secili.vardiya]"></span><span x-show="secili.ozel_gun"> · özel gün</span></p>
+            </div>
+            <div>
+              <p class="field-label">Neden bu eczane?</p>
+              <ul class="list-disc pl-5 text-sm text-ink-2"><template x-for="(m, i) in gerekce(secili)" :key="i"><li x-text="m"></li></template></ul>
+            </div>
+            <template x-if="yonetir">
+              <div class="field">
+                <label class="field-label" for="nb-yeni-eczane">Nöbeti başka eczaneye ver</label>
+                <select id="nb-yeni-eczane" class="input" x-model="yeniEczane">
+                  <option value="">Aynı bölgeden eczane seçin</option>
+                  <template x-for="e in adaylar" :key="e.id"><option :value="e.id" x-text="e.ad + (e.aktif ? '' : ' (pasif)')"></option></template>
+                </select>
+                <p class="field-help">Değişiklik işlem geçmişine yazılır; nöbet "elle değiştirildi" olarak işaretlenir.</p>
+              </div>
+            </template>
+          </div>
+          <footer class="pn-modal-foot">
+            <button type="button" class="btn btn-ghost" @click="secili = null" :disabled="mesgul">Kapat</button>
+            <button type="submit" class="btn btn-primary" x-show="yonetir" :disabled="mesgul || !yeniEczane" data-testid="nobet-degistir">Değiştir</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  
+  <template x-if="eczaneAcik">
+    <div>
+      <div class="pn-modal-backdrop" @click="mesgul || (eczaneAcik = false)"></div>
+      <div class="pn-modal-wrap">
+        <form class="pn-modal max-w-2xl" role="dialog" aria-modal="true" aria-labelledby="nb-eczane-baslik" @submit.prevent="eczaneKaydet()" @keydown.escape.window="mesgul || (eczaneAcik = false)" data-testid="eczane-form">
+          <header class="pn-modal-head">
+            <h2 id="nb-eczane-baslik" class="h3" x-text="eczane.id ? 'Eczaneyi düzenle' : 'Yeni eczane'"></h2>
+            <button type="button" class="btn-icon ml-auto" @click="eczaneAcik = false" :disabled="mesgul" aria-label="Kapat"><svg class="icon" aria-hidden="true"><use :href="ikon('x')"/></svg></button>
+          </header>
+          <div class="grid gap-4 p-5 md:grid-cols-2">
+            <div class="field md:col-span-2">
+              <label class="field-label" for="nb-e-ad">Eczanenin adı</label>
+              <input id="nb-e-ad" class="input" x-model="eczane.ad" maxlength="120" :aria-invalid="!!hatalar.ad" required>
+              <p class="field-error" x-show="hatalar.ad" x-text="hatalar.ad"></p>
+            </div>
+            <div class="field"><label class="field-label" for="nb-e-eczaci">Eczacı</label><input id="nb-e-eczaci" class="input" x-model="eczane.eczaci" maxlength="120"></div>
+            <div class="field">
+              <label class="field-label" for="nb-e-tel">Telefon</label>
+              <input id="nb-e-tel" class="input" inputmode="tel" x-model="eczane.telefon" maxlength="30" :aria-invalid="!!hatalar.telefon">
+              <p class="field-error" x-show="hatalar.telefon" x-text="hatalar.telefon"></p>
+            </div>
+            <div class="field md:col-span-2"><label class="field-label" for="nb-e-adres">Adres</label><input id="nb-e-adres" class="input" x-model="eczane.adres" maxlength="300"></div>
+            <div class="field">
+              <label class="field-label" for="nb-e-bolge">Bölge</label>
+              <select id="nb-e-bolge" class="input" x-model.number="eczane.bolge_id" :aria-invalid="!!hatalar.bolge_id" required>
+                <template x-for="b in bolgeler" :key="b.id"><option :value="b.id" x-text="b.ad" :selected="eczane.bolge_id === b.id"></option></template>
+              </select>
+              <p class="field-error" x-show="hatalar.bolge_id" x-text="hatalar.bolge_id"></p>
+            </div>
+            <div class="field">
+              <label class="field-label" for="nb-e-grup">Grup</label>
+              <select id="nb-e-grup" class="input" x-model="eczane.grup_id" :aria-invalid="!!hatalar.grup_id">
+                <option value="">Grupsuz</option>
+                <template x-for="g in gruplar" :key="g.id"><option :value="g.id" x-text="g.ad" :selected="Number(eczane.grup_id) === g.id"></option></template>
+              </select>
+              <p class="field-error" x-show="hatalar.grup_id" x-text="hatalar.grup_id"></p>
+            </div>
+            <div class="field">
+              <label class="field-label" for="nb-e-enlem">Enlem</label>
+              <input id="nb-e-enlem" class="input" inputmode="decimal" x-model="eczane.enlem" placeholder="37.0755" :aria-invalid="!!hatalar.enlem">
+              <p class="field-error" x-show="hatalar.enlem" x-text="hatalar.enlem"></p>
+            </div>
+            <div class="field">
+              <label class="field-label" for="nb-e-boylam">Boylam</label>
+              <input id="nb-e-boylam" class="input" inputmode="decimal" x-model="eczane.boylam" placeholder="36.2285" :aria-invalid="!!hatalar.boylam">
+              <p class="field-help">Coğrafi kural (P) ve harita için; haritada sağ tıklayıp koordinatı kopyalayabilirsiniz.</p>
+              <p class="field-error" x-show="hatalar.boylam" x-text="hatalar.boylam"></p>
+            </div>
+            <label class="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" class="h-4.5 w-4.5 accent-primary" x-model="eczane.aktif"> Etkin (döngülere girer; pasif eczanenin geçmişi kalır)</label>
+            <details class="md:col-span-2">
+              <summary class="cursor-pointer text-sm font-semibold text-ink">Devir sayıları <span class="font-normal text-muted">(sisteme sonradan katılan eczane için)</span></summary>
+              <p class="mt-2 text-sm text-ink-2">Bu sistemden önce tuttuğu nöbetler. Döngü, "en az tutan" kurallarında bunları geçmiş nöbetlere ekler; boş = 0.</p>
+              <template x-for="grup in devirGruplari" :key="grup.label">
+                <div class="mt-3">
+                  <p class="text-xs font-semibold text-muted" x-text="grup.label"></p>
+                  <div class="mt-1 grid grid-cols-4 gap-2 sm:grid-cols-7">
+                    <template x-for="k in grup.keys" :key="k">
+                      <label class="text-xs"><span x-text="devirAdlari[k]"></span><input type="number" min="0" max="9999" class="input" x-model="eczane.devir[k]"></label>
+                    </template>
+                  </div>
+                </div>
+              </template>
+              <p class="field-error" x-show="hatalar.devir" x-text="hatalar.devir"></p>
+            </details>
+          </div>
+          <footer class="pn-modal-foot">
+            <button type="button" class="btn btn-ghost" @click="eczaneAcik = false" :disabled="mesgul">Vazgeç</button>
+            <button type="submit" class="btn btn-primary" :disabled="mesgul" data-testid="eczane-kaydet">Kaydet</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  
+  <template x-if="bolgeAcik">
+    <div>
+      <div class="pn-modal-backdrop" @click="mesgul || (bolgeAcik = false)"></div>
+      <div class="pn-modal-wrap">
+        <form class="pn-modal max-w-md" role="dialog" aria-modal="true" aria-labelledby="nb-bolge-baslik" @submit.prevent="bolgeKaydet()" @keydown.escape.window="mesgul || (bolgeAcik = false)">
+          <header class="pn-modal-head"><h2 id="nb-bolge-baslik" class="h3" x-text="bolge.id ? 'Bölgeyi düzenle' : 'Yeni bölge'"></h2></header>
+          <div class="flex flex-col gap-4 p-5">
+            <div class="field"><label class="field-label" for="nb-b-ad">Ad</label><input id="nb-b-ad" class="input" x-model="bolge.ad" maxlength="80" :aria-invalid="!!hatalar.ad" required><p class="field-error" x-show="hatalar.ad" x-text="hatalar.ad"></p></div>
+            <div class="field"><label class="field-label" for="nb-b-sira">Sıra</label><input id="nb-b-sira" type="number" min="0" max="999" class="input" x-model.number="bolge.sira"></div>
+          </div>
+          <footer class="pn-modal-foot"><button type="button" class="btn btn-ghost" @click="bolgeAcik = false">Vazgeç</button><button type="submit" class="btn btn-primary" :disabled="mesgul">Kaydet</button></footer>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  <template x-if="grupAcik">
+    <div>
+      <div class="pn-modal-backdrop" @click="mesgul || (grupAcik = false)"></div>
+      <div class="pn-modal-wrap">
+        <form class="pn-modal max-w-md" role="dialog" aria-modal="true" aria-labelledby="nb-grup-baslik" @submit.prevent="grupKaydet()" @keydown.escape.window="mesgul || (grupAcik = false)">
+          <header class="pn-modal-head"><h2 id="nb-grup-baslik" class="h3" x-text="grup.id ? 'Grubu düzenle' : 'Yeni grup'"></h2></header>
+          <div class="flex flex-col gap-4 p-5">
+            <div class="field"><label class="field-label" for="nb-g-ad">Ad</label><input id="nb-g-ad" class="input" x-model="grup.ad" maxlength="80" :aria-invalid="!!hatalar.ad" required><p class="field-error" x-show="hatalar.ad" x-text="hatalar.ad"></p></div>
+            <fieldset class="field">
+              <legend class="field-label">Eş gruplar (J)</legend>
+              <template x-for="g in gruplar.filter((g) => g.id !== grup.id)" :key="g.id">
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="h-4.5 w-4.5 accent-primary" :checked="grup.eslesme.includes(g.id)" @change="grupEslesme(g.id)"> <span x-text="g.ad"></span></label>
+              </template>
+              <p class="field-help" x-show="gruplar.length < 2">Eş grup seçmek için önce başka grup ekleyin.</p>
+              <p class="field-error" x-show="hatalar.eslesme" x-text="hatalar.eslesme"></p>
+            </fieldset>
+            <div class="field">
+              <label class="field-label" for="nb-g-yedek">Yedek grup (J)</label>
+              <select id="nb-g-yedek" class="input" x-model="grup.yedek_id">
+                <option value="">Yok</option>
+                <template x-for="g in gruplar.filter((g) => g.id !== grup.id)" :key="g.id"><option :value="g.id" x-text="g.ad" :selected="Number(grup.yedek_id) === g.id"></option></template>
+              </select>
+              <p class="field-error" x-show="hatalar.yedek_id" x-text="hatalar.yedek_id"></p>
+            </div>
+            <div class="field">
+              <label class="field-label" for="nb-g-ust">Üst grup</label>
+              <select id="nb-g-ust" class="input" x-model="grup.ust_id">
+                <option value="">Yok (ana grup)</option>
+                <template x-for="g in gruplar.filter((g) => g.id !== grup.id && !g.ust_id)" :key="g.id"><option :value="g.id" x-text="g.ad" :selected="Number(grup.ust_id) === g.id"></option></template>
+              </select>
+              <p class="field-help">Alt grup, nöbet seçiminde üst grubuyla aynı sayılır (aynı gün aynı bölgede, I ve J kurallarında).</p>
+              <p class="field-error" x-show="hatalar.ust_id" x-text="hatalar.ust_id"></p>
+            </div>
+          </div>
+          <footer class="pn-modal-foot"><button type="button" class="btn btn-ghost" @click="grupAcik = false">Vazgeç</button><button type="submit" class="btn btn-primary" :disabled="mesgul">Kaydet</button></footer>
+        </form>
+      </div>
+    </div>
+  </template>
+</div>
